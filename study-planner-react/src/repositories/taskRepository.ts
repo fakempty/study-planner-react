@@ -27,6 +27,7 @@ export interface CreateTaskInput {
   description: string;
   category: string;
   priority: TaskPriority;
+  createdBy?: string;
 }
 
 export interface UpdateTaskInput {
@@ -37,21 +38,41 @@ export interface UpdateTaskInput {
   completed?: boolean;
 }
 
-// Зберігаємо клієнтські метадані для створених/відредагованих задач у межах сесії
 const clientMetadataMap = new Map<
   number,
-  { description: string; category: string; priority: TaskPriority }
+  {
+    description: string;
+    category: string;
+    priority: TaskPriority;
+    createdBy: string;
+    createdAt: string;
+  }
 >();
 
 function toTask(apiTodo: ApiTodo): Task {
-  const meta = clientMetadataMap.get(apiTodo.id);
+  const existing = clientMetadataMap.get(apiTodo.id);
+  if (existing) {
+    return {
+      id: apiTodo.id,
+      title: apiTodo.todo,
+      description: existing.description,
+      completed: apiTodo.completed,
+      priority: existing.priority,
+      category: existing.category,
+      createdBy: existing.createdBy,
+      createdAt: existing.createdAt,
+    };
+  }
+
   return {
     id: apiTodo.id,
     title: apiTodo.todo,
-    description: meta?.description ?? '',
+    description: '',
     completed: apiTodo.completed,
-    priority: meta?.priority ?? 'medium',
-    category: meta?.category ?? 'General',
+    priority: 'medium',
+    category: 'General',
+    createdBy: `user#${apiTodo.userId}`,
+    createdAt: '2026-01-01',
   };
 }
 
@@ -79,9 +100,10 @@ export const taskRepository = {
     return toTask(apiTodo);
   },
 
-  async create(input: CreateTaskInput): Promise<Task> {
+  async create(input: CreateTaskInput, token: string): Promise<Task> {
     const created = await httpClient<ApiTodo>('/todos/add', {
       method: 'POST',
+      token,
       body: {
         todo: input.title,
         completed: false,
@@ -89,12 +111,16 @@ export const taskRepository = {
       },
     });
 
-    // DummyJSON часто повертає id з фіксованого діапазону, тому гарантуємо унікальний id для UI-списку
     const uniqueId = created.id ?? Date.now();
+    const createdBy = input.createdBy || 'authenticated-user';
+    const createdAt = new Date().toISOString().slice(0, 10);
+
     clientMetadataMap.set(uniqueId, {
       description: input.description,
       category: input.category,
       priority: input.priority,
+      createdBy,
+      createdAt,
     });
 
     return {
@@ -104,12 +130,15 @@ export const taskRepository = {
       completed: Boolean(created.completed),
       priority: input.priority,
       category: input.category,
+      createdBy,
+      createdAt,
     };
   },
 
   async update(
     id: number,
     input: UpdateTaskInput,
+    token: string,
     currentTask?: Task
   ): Promise<Task> {
     const nextTitle = input.title ?? currentTask?.title ?? '';
@@ -118,17 +147,22 @@ export const taskRepository = {
       input.description ?? currentTask?.description ?? '';
     const nextCategory = input.category ?? currentTask?.category ?? 'General';
     const nextPriority = input.priority ?? currentTask?.priority ?? 'medium';
+    const nextCreatedBy = currentTask?.createdBy ?? 'authenticated-user';
+    const nextCreatedAt =
+      currentTask?.createdAt ?? new Date().toISOString().slice(0, 10);
 
     clientMetadataMap.set(id, {
       description: nextDescription,
       category: nextCategory,
       priority: nextPriority,
+      createdBy: nextCreatedBy,
+      createdAt: nextCreatedAt,
     });
 
-    // Для локально створених у поточній сесії задач (id > 254) DummyJSON може повернути 404 на /todos/:id
     if (id <= 254) {
       await httpClient<ApiTodo>(`/todos/${id}`, {
         method: 'PATCH',
+        token,
         body: {
           todo: nextTitle,
           completed: nextCompleted,
@@ -143,13 +177,16 @@ export const taskRepository = {
       completed: nextCompleted,
       priority: nextPriority,
       category: nextCategory,
+      createdBy: nextCreatedBy,
+      createdAt: nextCreatedAt,
     };
   },
 
-  async delete(id: number): Promise<void> {
+  async delete(id: number, token: string): Promise<void> {
     if (id <= 254) {
       await httpClient<ApiTodo>(`/todos/${id}`, {
         method: 'DELETE',
+        token,
       });
     }
     clientMetadataMap.delete(id);
