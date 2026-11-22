@@ -1,3 +1,4 @@
+@'
 # Logs
 logs
 *.log
@@ -7,7 +8,12 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
+.pnp
+.pnp.*
+
+# Build outputs
 dist
 dist-ssr
 *.local
@@ -15,10 +21,17 @@ dist-ssr
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
 .idea
-.DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
+# OS files
+Thumbs.db
+.DS_Store
+desktop.ini
+'@ | Set-Content -Path ".gitignore" -Encoding UTF8
