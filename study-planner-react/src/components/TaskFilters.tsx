@@ -1,4 +1,4 @@
-﻿import { TaskFilter } from '../types/task';
+﻿import type { TaskFilter } from '../types/task';
 
 interface TaskFiltersProps {
   activeFilter: TaskFilter;

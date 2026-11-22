@@ -1,4 +1,4 @@
-﻿import { Task, TaskFilter } from '../types/task';
+﻿import type { Task, TaskFilter } from '../types/task';
 import TaskItem from './TaskItem';
 
 interface TaskListProps {

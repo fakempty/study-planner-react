@@ -5,7 +5,7 @@ import TaskForm from './components/TaskForm';
 import TaskList from './components/TaskList';
 import TaskStats from './components/TaskStats';
 import { initialTasks } from './data/initialTasks';
-import { Task, TaskFilter, TaskPriority } from './types/task';
+import type { Task, TaskFilter, TaskPriority } from './types/task';
 
 function App() {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);

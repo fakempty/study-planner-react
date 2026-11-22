@@ -1,5 +1,6 @@
-﻿import { FormEvent, useState } from 'react';
-import { TaskPriority } from '../types/task';
+﻿import { useState } from 'react';
+import type { FormEvent } from 'react';
+import type { TaskPriority } from '../types/task';
 
 interface TaskFormProps {
   onAddTask: (taskData: {
