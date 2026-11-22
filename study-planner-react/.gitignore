@@ -35,3 +35,6 @@ Thumbs.db
 .DS_Store
 desktop.ini
 '@ | Set-Content -Path ".gitignore" -Encoding UTF8
+# Environment variables
+.env
+.env.local
