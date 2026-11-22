@@ -7,6 +7,13 @@
   border: 1px solid #e2e8f0;
   border-radius: 10px;
 
+  &__heading {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 600;
+    color: #0f172a;
+  }
+
   &__field {
     display: flex;
     flex-direction: column;
@@ -50,8 +57,13 @@
     font-weight: 500;
   }
 
+  &__actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
   &__submit {
-    justify-self: start;
     padding: 8px 18px;
     font: inherit;
     font-size: 14px;
@@ -64,6 +76,21 @@
 
     &:hover {
       background-color: #1d4ed8;
+    }
+  }
+
+  &__cancel {
+    padding: 8px 14px;
+    font: inherit;
+    font-size: 14px;
+    color: #334155;
+    background-color: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    cursor: pointer;
+
+    &:hover {
+      background-color: #e2e8f0;
     }
   }
 }

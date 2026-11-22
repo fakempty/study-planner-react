@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState } from 'react';
-import { UNDO_DURATION_MS } from '../context/TaskContext';
+import { UNDO_DURATION_MS } from '../context/taskContext';
 import { useTaskContext } from '../hooks/useTaskContext';
 import './Toast.scss';
 
@@ -9,13 +9,10 @@ function Toast() {
 
   useEffect(() => {
     if (!toast?.undoable) {
-      setProgress(100);
       return;
     }
 
     const startTime = Date.now();
-    setProgress(100);
-
     const intervalId = window.setInterval(() => {
       const elapsed = Date.now() - startTime;
       const remainingPercent = Math.max(

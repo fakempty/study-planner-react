@@ -1,4 +1,9 @@
 ﻿.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
   margin-bottom: 24px;
   padding-bottom: 12px;
   border-bottom: 1px solid #cbd5e1;
@@ -14,5 +19,21 @@
     margin: 0;
     font-size: 14px;
     color: #64748b;
+  }
+
+  &__reset {
+    padding: 7px 14px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    background-color: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    cursor: pointer;
+
+    &:hover {
+      background-color: #f1f5f9;
+    }
   }
 }

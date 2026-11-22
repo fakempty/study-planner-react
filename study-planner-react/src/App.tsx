@@ -4,20 +4,31 @@ import TaskForm from './components/TaskForm';
 import TaskList from './components/TaskList';
 import TaskStats from './components/TaskStats';
 import Toast from './components/Toast';
-import { TaskProvider } from './context/TaskContext';
+import { TaskProvider } from './context/TaskProvider';
+import { useTaskContext } from './hooks/useTaskContext';
 import './index.scss';
 
-function App() {
+function PlannerWorkspace() {
+  const { editingTask, toast } = useTaskContext();
+
   return (
-    <TaskProvider>
+    <>
       <main className="app">
         <Header />
-        <TaskForm />
+        <TaskForm key={editingTask ? `edit-${editingTask.id}` : 'create'} />
         <TaskStats />
         <TaskFilters />
         <TaskList />
       </main>
-      <Toast />
+      <Toast key={toast ? `toast-${toast.id}` : 'toast-empty'} />
+    </>
+  );
+}
+
+function App() {
+  return (
+    <TaskProvider>
+      <PlannerWorkspace />
     </TaskProvider>
   );
 }

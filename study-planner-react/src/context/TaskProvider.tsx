@@ -1,5 +1,4 @@
 ﻿import {
-  createContext,
   useCallback,
   useEffect,
   useMemo,
@@ -14,44 +13,9 @@ import {
   taskReducer,
   TASKS_STORAGE_KEY,
 } from '../reducers/taskReducer';
-import type { PendingDelete } from '../reducers/taskReducer';
-import type { Task, TaskFilter, TaskPriority } from '../types/task';
-
-export const UNDO_DURATION_MS = 5000;
-
-export interface ToastMessage {
-  id: number;
-  text: string;
-  variant: 'info' | 'success' | 'warning' | 'error';
-  undoable?: boolean;
-}
-
-interface TaskFormValues {
-  title: string;
-  description: string;
-  category: string;
-  priority: TaskPriority;
-}
-
-export interface TaskContextValue {
-  tasks: Task[];
-  filter: TaskFilter;
-  setFilter: (filter: TaskFilter) => void;
-  editingTask: Task | null;
-  startEditingTask: (task: Task) => void;
-  cancelEditingTask: () => void;
-  addTask: (values: TaskFormValues) => void;
-  updateTask: (id: number, values: TaskFormValues) => void;
-  toggleTask: (id: number) => void;
-  requestDelete: (id: number) => void;
-  undoDelete: () => void;
-  resetTasks: () => void;
-  pendingDelete: PendingDelete | null;
-  toast: ToastMessage | null;
-  dismissToast: () => void;
-}
-
-export const TaskContext = createContext<TaskContextValue | null>(null);
+import type { Task, TaskFilter } from '../types/task';
+import { TaskContext, UNDO_DURATION_MS } from './taskContext';
+import type { TaskContextValue, TaskFormValues, ToastMessage } from './taskContext';
 
 interface TaskProviderProps {
   children: ReactNode;
@@ -90,22 +54,19 @@ export function TaskProvider({ children }: TaskProviderProps) {
     setToast(null);
   }, []);
 
-  // Синхронізація tasks у localStorage (єдине джерело правди — state.tasks)
   useEffect(() => {
     try {
       window.localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(state.tasks));
     } catch {
-      showToast('Не вдалося зберегти завдання у localStorage.', 'error');
+      // Ігноруємо помилки доступу до сховища
     }
-  }, [state.tasks, showToast]);
+  }, [state.tasks]);
 
-  // Синхронізація document.title з кількістю невиконаних завдань
   useEffect(() => {
     const activeCount = state.tasks.filter((task) => !task.completed).length;
     document.title = `Study Planner — ${activeCount} active tasks`;
   }, [state.tasks]);
 
-  // Таймер 5 секунд для Undoable Delete з обов'язковим очищенням через clearTimeout
   useEffect(() => {
     if (!state.pendingDelete) {
       return;
@@ -122,7 +83,6 @@ export function TaskProvider({ children }: TaskProviderProps) {
     };
   }, [state.pendingDelete, showToast]);
 
-  // Автоматичне приховування звичайних (не undo) toast-повідомлень
   useEffect(() => {
     if (!toast || toast.undoable) {
       return;

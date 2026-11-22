@@ -1,0 +1,92 @@
+﻿.toast {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 50;
+  min-width: 280px;
+  max-width: 420px;
+  background-color: #0f172a;
+  color: #f8fafc;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.22);
+  overflow: hidden;
+
+  &--success {
+    border-left: 4px solid #22c55e;
+  }
+
+  &--warning {
+    border-left: 4px solid #f59e0b;
+  }
+
+  &--error {
+    border-left: 4px solid #ef4444;
+  }
+
+  &--info {
+    border-left: 4px solid #3b82f6;
+  }
+
+  &__content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+  }
+
+  &__text {
+    margin: 0;
+    font-size: 14px;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  &__undo {
+    padding: 4px 10px;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    color: #0f172a;
+    background-color: #fbbf24;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+
+    &:hover {
+      background-color: #f59e0b;
+    }
+  }
+
+  &__close {
+    padding: 2px 6px;
+    font: inherit;
+    font-size: 16px;
+    line-height: 1;
+    color: #cbd5e1;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+
+    &:hover {
+      color: #ffffff;
+    }
+  }
+
+  &__progress-track {
+    width: 100%;
+    height: 4px;
+    background-color: rgba(255, 255, 255, 0.15);
+  }
+
+  &__progress-bar {
+    height: 100%;
+    background-color: #fbbf24;
+    transition: width 50ms linear;
+  }
+}
