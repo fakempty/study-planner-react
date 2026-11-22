@@ -1,25 +1,36 @@
-﻿import type { Task } from '../types/task';
+﻿import { useTaskContext } from '../hooks/useTaskContext';
+import type { Task } from '../types/task';
 import './TaskItem.scss';
 
 interface TaskItemProps {
   task: Task;
-  onToggleTask: (id: number) => void;
-  onDeleteTask: (id: number) => void;
 }
 
-function TaskItem({ task, onToggleTask, onDeleteTask }: TaskItemProps) {
-  const itemClass = task.completed
-    ? 'task-item task-item--completed'
-    : 'task-item';
+function TaskItem({ task }: TaskItemProps) {
+  const { toggleTask, requestDelete, startEditingTask, pendingDelete } =
+    useTaskContext();
+
+  const isPendingDeletion = pendingDelete?.taskId === task.id;
+
+  const itemClasses = ['task-item'];
+  if (task.completed) {
+    itemClasses.push('task-item--completed');
+  }
+  if (isPendingDeletion) {
+    itemClasses.push('task-item--pending-delete');
+  }
 
   return (
-    <li className={itemClass}>
+    <li className={itemClasses.join(' ')}>
       <div className="task-item__body">
         <div className="task-item__top">
           <h3 className="task-item__title">{task.title}</h3>
           <span className="task-item__status">
             {task.completed ? 'Виконано' : 'Не виконано'}
           </span>
+          {isPendingDeletion && (
+            <span className="task-item__pending-badge">Буде видалено</span>
+          )}
         </div>
 
         {task.description && (
@@ -36,15 +47,26 @@ function TaskItem({ task, onToggleTask, onDeleteTask }: TaskItemProps) {
         <button
           type="button"
           className="task-item__btn"
-          onClick={() => onToggleTask(task.id)}
+          disabled={isPendingDeletion}
+          onClick={() => toggleTask(task.id)}
         >
           {task.completed ? 'Повернути в не виконані' : 'Позначити виконаним'}
         </button>
 
         <button
           type="button"
+          className="task-item__btn"
+          disabled={isPendingDeletion}
+          onClick={() => startEditingTask(task)}
+        >
+          Редагувати
+        </button>
+
+        <button
+          type="button"
           className="task-item__btn task-item__btn--danger"
-          onClick={() => onDeleteTask(task.id)}
+          disabled={isPendingDeletion}
+          onClick={() => requestDelete(task.id)}
         >
           Видалити
         </button>
