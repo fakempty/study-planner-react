@@ -1,6 +1,7 @@
 ﻿import { useState } from 'react';
 import type { FormEvent } from 'react';
 import type { TaskPriority } from '../types/task';
+import './TaskForm.scss';
 
 interface TaskFormProps {
   onAddTask: (taskData: {
@@ -42,10 +43,13 @@ function TaskForm({ onAddTask }: TaskFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} noValidate>
-      <div>
-        <label htmlFor="task-title">Назва *</label>
+    <form className="task-form" onSubmit={handleSubmit} noValidate>
+      <div className="task-form__field">
+        <label className="task-form__label" htmlFor="task-title">
+          Назва *
+        </label>
         <input
+          className="task-form__input"
           id="task-title"
           type="text"
           value={title}
@@ -59,9 +63,12 @@ function TaskForm({ onAddTask }: TaskFormProps) {
         />
       </div>
 
-      <div>
-        <label htmlFor="task-description">Опис</label>
+      <div className="task-form__field">
+        <label className="task-form__label" htmlFor="task-description">
+          Опис
+        </label>
         <textarea
+          className="task-form__textarea"
           id="task-description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
@@ -70,33 +77,47 @@ function TaskForm({ onAddTask }: TaskFormProps) {
         />
       </div>
 
-      <div>
-        <label htmlFor="task-category">Категорія</label>
-        <input
-          id="task-category"
-          type="text"
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          placeholder="React, TypeScript, Алгоритми..."
-        />
+      <div className="task-form__row">
+        <div className="task-form__field">
+          <label className="task-form__label" htmlFor="task-category">
+            Категорія
+          </label>
+          <input
+            className="task-form__input"
+            id="task-category"
+            type="text"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            placeholder="React, TypeScript, Алгоритми..."
+          />
+        </div>
+
+        <div className="task-form__field">
+          <label className="task-form__label" htmlFor="task-priority">
+            Пріоритет
+          </label>
+          <select
+            className="task-form__select"
+            id="task-priority"
+            value={priority}
+            onChange={(e) => setPriority(e.target.value as TaskPriority)}
+          >
+            <option value="low">low</option>
+            <option value="medium">medium</option>
+            <option value="high">high</option>
+          </select>
+        </div>
       </div>
 
-      <div>
-        <label htmlFor="task-priority">Пріоритет</label>
-        <select
-          id="task-priority"
-          value={priority}
-          onChange={(e) => setPriority(e.target.value as TaskPriority)}
-        >
-          <option value="low">low</option>
-          <option value="medium">medium</option>
-          <option value="high">high</option>
-        </select>
-      </div>
+      {error && (
+        <p className="task-form__error" role="alert">
+          {error}
+        </p>
+      )}
 
-      {error && <p role="alert">{error}</p>}
-
-      <button type="submit">Додати</button>
+      <button className="task-form__submit" type="submit">
+        Додати
+      </button>
     </form>
   );
 }

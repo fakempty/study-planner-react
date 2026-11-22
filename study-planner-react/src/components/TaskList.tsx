@@ -1,5 +1,6 @@
 ﻿import type { Task, TaskFilter } from '../types/task';
 import TaskItem from './TaskItem';
+import './TaskList.scss';
 
 interface TaskListProps {
   tasks: Task[];
@@ -18,7 +19,7 @@ function TaskList({
 }: TaskListProps) {
   if (totalTasksCount === 0) {
     return (
-      <p>
+      <p className="task-list__empty">
         Завдань поки немає. Додайте перше навчальне завдання.
       </p>
     );
@@ -27,11 +28,15 @@ function TaskList({
   if (tasks.length === 0) {
     const filterLabel =
       activeFilter === 'completed' ? 'виконаних' : 'невиконаних';
-    return <p>За цим фільтром завдань немає ({filterLabel}).</p>;
+    return (
+      <p className="task-list__empty">
+        За цим фільтром завдань немає ({filterLabel}).
+      </p>
+    );
   }
 
   return (
-    <ul>
+    <ul className="task-list">
       {tasks.map((task) => (
         <TaskItem
           key={task.id}

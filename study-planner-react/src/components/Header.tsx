@@ -1,8 +1,10 @@
-﻿function Header() {
+﻿import './Header.scss';
+
+function Header() {
   return (
-    <header>
-      <h1>Study Planner</h1>
-      <p>Планувальник навчальних завдань</p>
+    <header className="header">
+      <h1 className="header__title">Study Planner</h1>
+      <p className="header__subtitle">Планувальник навчальних завдань</p>
     </header>
   );
 }

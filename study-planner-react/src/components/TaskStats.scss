@@ -1,0 +1,16 @@
+﻿.task-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+
+  &__item {
+    margin: 0;
+    padding: 8px 14px;
+    font-size: 14px;
+    font-weight: 500;
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+  }
+}

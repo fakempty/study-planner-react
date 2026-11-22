@@ -1,4 +1,5 @@
 ﻿import type { TaskFilter } from '../types/task';
+import './TaskFilters.scss';
 
 interface TaskFiltersProps {
   activeFilter: TaskFilter;
@@ -13,15 +14,19 @@ const FILTERS: { value: TaskFilter; label: string }[] = [
 
 function TaskFilters({ activeFilter, onFilterChange }: TaskFiltersProps) {
   return (
-    <div role="group" aria-label="Фільтр завдань">
+    <div className="task-filters" role="group" aria-label="Фільтр завдань">
       {FILTERS.map((filter) => {
         const isActive = activeFilter === filter.value;
+        const buttonClass = isActive
+          ? 'task-filters__button task-filters__button--active'
+          : 'task-filters__button';
+
         return (
           <button
             key={filter.value}
             type="button"
+            className={buttonClass}
             aria-pressed={isActive}
-            data-active={isActive}
             onClick={() => onFilterChange(filter.value)}
           >
             {filter.label}

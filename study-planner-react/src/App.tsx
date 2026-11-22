@@ -6,6 +6,7 @@ import TaskList from './components/TaskList';
 import TaskStats from './components/TaskStats';
 import { initialTasks } from './data/initialTasks';
 import type { Task, TaskFilter, TaskPriority } from './types/task';
+import './index.scss';
 
 function App() {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
@@ -55,7 +56,7 @@ function App() {
   });
 
   return (
-    <main>
+    <main className="app">
       <Header />
       <TaskForm onAddTask={handleAddTask} />
       <TaskStats tasks={tasks} />

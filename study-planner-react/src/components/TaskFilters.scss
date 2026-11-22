@@ -1,0 +1,31 @@
+﻿.task-filters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+
+  &__button {
+    padding: 6px 14px;
+    font: inherit;
+    font-size: 14px;
+    color: #334155;
+    background-color: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    cursor: pointer;
+
+    &:hover {
+      background-color: #f1f5f9;
+    }
+
+    &--active {
+      color: #ffffff;
+      background-color: #0f172a;
+      border-color: #0f172a;
+      font-weight: 600;
+
+      &:hover {
+        background-color: #1e293b;
+      }
+    }
+  }
+}
