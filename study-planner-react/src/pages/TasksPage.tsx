@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import Pagination from '../components/Pagination';
 import { TaskFormDialog } from '../components/TaskFormDialog';
@@ -20,8 +20,7 @@ export function TasksPage() {
   const statusParam = searchParams.get('status') ?? 'all';
   const priorityParam = searchParams.get('priority') ?? 'all';
 
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [total, setTotal] = useState(0);
+  const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [page, setPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -31,21 +30,19 @@ export function TasksPage() {
   const [retryTick, setRetryTick] = useState(0);
   const [completedKey, setCompletedKey] = useState<string | null>(null);
 
-  const requestKey = `${page}-${retryTick}`;
+  const requestKey = `fetch-${retryTick}`;
   const isLoading = completedKey !== requestKey;
 
   useEffect(() => {
     const controller = new AbortController();
-    const skip = (page - 1) * PAGE_LIMIT;
 
     taskRepository
-      .getAll(PAGE_LIMIT, skip, controller.signal)
+      .getAll(0, 0, controller.signal)
       .then((res) => {
         if (controller.signal.aborted) {
           return;
         }
-        setTasks(res.tasks);
-        setTotal(res.total);
+        setAllTasks(res.tasks);
         setError(null);
         setCompletedKey(requestKey);
       })
@@ -65,7 +62,7 @@ export function TasksPage() {
     return () => {
       controller.abort();
     };
-  }, [page, requestKey]);
+  }, [requestKey]);
 
   const updateFilterParam = (key: 'status' | 'priority', value: string) => {
     const next = new URLSearchParams(searchParams);
@@ -75,6 +72,12 @@ export function TasksPage() {
       next.set(key, value);
     }
     setSearchParams(next);
+    setPage(1);
+  };
+
+  const resetFilters = () => {
+    setSearchParams(new URLSearchParams());
+    setPage(1);
   };
 
   const handleOpenCreateDialog = () => {
@@ -92,18 +95,26 @@ export function TasksPage() {
       return;
     }
 
-    const created = await taskRepository.create(
-      {
-        ...data,
-        createdBy: user?.username ?? 'authenticated-user',
-      },
-      accessToken
-    );
+    try {
+      const created = await taskRepository.create(
+        {
+          ...data,
+          createdBy: user?.username ?? 'authenticated-user',
+        },
+        accessToken
+      );
 
-    setTasks((prev) => [created, ...prev]);
-    setTotal((prev) => prev + 1);
-    setIsDialogOpen(false);
-    setFeedback(`Завдання «${created.title}» створено.`);
+      setAllTasks((prev) => [created, ...prev]);
+      setIsDialogOpen(false);
+      setFeedback(
+        `Завдання «${created.title}» створено (пріоритет: ${created.priority}).`
+      );
+    } catch (err) {
+      setIsDialogOpen(false);
+      setFeedback(
+        err instanceof Error ? err.message : 'Не вдалося створити завдання.'
+      );
+    }
   };
 
   const handleToggleCompleted = async (task: Task) => {
@@ -122,7 +133,7 @@ export function TasksPage() {
         accessToken,
         task
       );
-      setTasks((prev) =>
+      setAllTasks((prev) =>
         prev.map((item) => (item.id === task.id ? updated : item))
       );
       setFeedback(`Статус «${updated.title}» оновлено.`);
@@ -146,8 +157,7 @@ export function TasksPage() {
 
     try {
       await taskRepository.delete(id, accessToken);
-      setTasks((prev) => prev.filter((item) => item.id !== id));
-      setTotal((prev) => Math.max(0, prev - 1));
+      setAllTasks((prev) => prev.filter((item) => item.id !== id));
       setConfirmDeleteId(null);
       setFeedback('Завдання видалено.');
     } catch (err) {
@@ -159,7 +169,7 @@ export function TasksPage() {
     }
   };
 
-  const filteredTasks = tasks.filter((task) => {
+  const filteredTasks = allTasks.filter((task) => {
     if (statusParam === 'completed' && !task.completed) {
       return false;
     }
@@ -175,7 +185,12 @@ export function TasksPage() {
     return true;
   });
 
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_LIMIT));
+  const totalFiltered = filteredTasks.length;
+  const totalPages = Math.max(1, Math.ceil(totalFiltered / PAGE_LIMIT));
+  const safePage = Math.min(page, totalPages);
+  const pageStart = (safePage - 1) * PAGE_LIMIT;
+  const visibleTasks = filteredTasks.slice(pageStart, pageStart + PAGE_LIMIT);
+  const hasActiveFilter = statusParam !== 'all' || priorityParam !== 'all';
 
   return (
     <section aria-label="Список завдань">
@@ -221,6 +236,16 @@ export function TasksPage() {
             <option value="high">high</option>
           </select>
         </label>
+
+        {hasActiveFilter && (
+          <button
+            type="button"
+            className="task-item__btn"
+            onClick={resetFilters}
+          >
+            Скинути фільтри
+          </button>
+        )}
       </div>
 
       {isLoading && <p className="task-list__empty">Loading...</p>}
@@ -234,13 +259,24 @@ export function TasksPage() {
         </div>
       )}
 
-      {!isLoading && !error && filteredTasks.length === 0 && (
-        <p className="task-list__empty">Завдань не знайдено.</p>
+      {!isLoading && !error && visibleTasks.length === 0 && (
+        <div className="task-list__empty">
+          <p>Завдань не знайдено.</p>
+          {hasActiveFilter && (
+            <button
+              type="button"
+              className="task-item__btn"
+              onClick={resetFilters}
+            >
+              Показати усі
+            </button>
+          )}
+        </div>
       )}
 
-      {!isLoading && !error && filteredTasks.length > 0 && (
+      {!isLoading && !error && visibleTasks.length > 0 && (
         <ul className="task-list">
-          {filteredTasks.map((task) => {
+          {visibleTasks.map((task) => {
             const isBusy = busyTaskId === task.id;
             const itemClass = task.completed
               ? 'task-item task-item--completed'
@@ -324,9 +360,9 @@ export function TasksPage() {
       )}
 
       <Pagination
-        currentPage={page}
+        currentPage={safePage}
         totalPages={totalPages}
-        totalItems={total}
+        totalItems={totalFiltered}
         disabled={isLoading}
         onPrevPage={() => setPage((prev) => Math.max(1, prev - 1))}
         onNextPage={() => setPage((prev) => Math.min(totalPages, prev + 1))}

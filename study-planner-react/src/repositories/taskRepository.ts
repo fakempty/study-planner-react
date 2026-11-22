@@ -1,4 +1,4 @@
-﻿import { httpClient } from '../api/httpClient';
+import { httpClient } from '../api/httpClient';
 import type { Task, TaskPriority } from '../types/task';
 
 interface ApiTodo {
@@ -49,6 +49,17 @@ const clientMetadataMap = new Map<
   }
 >();
 
+function inferPriorityFromId(id: number): TaskPriority {
+  const remainder = Math.abs(id) % 3;
+  if (remainder === 0) {
+    return 'high';
+  }
+  if (remainder === 1) {
+    return 'low';
+  }
+  return 'medium';
+}
+
 function toTask(apiTodo: ApiTodo): Task {
   const existing = clientMetadataMap.get(apiTodo.id);
   if (existing) {
@@ -69,7 +80,7 @@ function toTask(apiTodo: ApiTodo): Task {
     title: apiTodo.todo,
     description: '',
     completed: apiTodo.completed,
-    priority: 'medium',
+    priority: inferPriorityFromId(apiTodo.id),
     category: 'General',
     createdBy: `user#${apiTodo.userId}`,
     createdAt: '2026-01-01',
@@ -146,7 +157,8 @@ export const taskRepository = {
     const nextDescription =
       input.description ?? currentTask?.description ?? '';
     const nextCategory = input.category ?? currentTask?.category ?? 'General';
-    const nextPriority = input.priority ?? currentTask?.priority ?? 'medium';
+    const nextPriority =
+      input.priority ?? currentTask?.priority ?? inferPriorityFromId(id);
     const nextCreatedBy = currentTask?.createdBy ?? 'authenticated-user';
     const nextCreatedAt =
       currentTask?.createdAt ?? new Date().toISOString().slice(0, 10);

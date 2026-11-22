@@ -1,10 +1,10 @@
-﻿import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { taskFormSchema } from '../schemas/taskSchema';
 import type { TaskFormData } from '../schemas/taskSchema';
 import type { Task } from '../types/task';
-import '../components/TaskForm.scss';
+import './TaskForm.scss';
 import '../layouts/AppLayout.scss';
 
 export interface TaskFormDialogProps {
@@ -22,12 +22,13 @@ export function TaskFormDialog({
   onClose,
   onSubmit,
 }: TaskFormDialogProps) {
-  const titleInputRef = useRef<HTMLInputElement | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
     reset,
+    setFocus,
     formState: { errors, isSubmitting },
   } = useForm<TaskFormData>({
     resolver: zodResolver(taskFormSchema),
@@ -61,27 +62,40 @@ export function TaskFormDialog({
     }
 
     const focusTimer = window.setTimeout(() => {
-      titleInputRef.current?.focus();
+      setFocus('title');
     }, 0);
+
+    return () => {
+      window.clearTimeout(focusTimer);
+    };
+  }, [open, mode, task, reset, setFocus]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !isSubmitting) {
+        setSubmitError(null);
         onClose();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => {
-      window.clearTimeout(focusTimer);
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [open, mode, task, reset, onClose, isSubmitting]);
+  }, [open, isSubmitting, onClose]);
 
   if (!open) {
     return null;
   }
 
-  const { ref: registerTitleRef, ...titleRegisterProps } = register('title');
+  const handleRequestClose = () => {
+    setSubmitError(null);
+    onClose();
+  };
 
   return (
     <div
@@ -100,7 +114,7 @@ export function TaskFormDialog({
             className="dialog-panel__close"
             aria-label="Закрити діалог"
             disabled={isSubmitting}
-            onClick={onClose}
+            onClick={handleRequestClose}
           >
             ×
           </button>
@@ -109,7 +123,16 @@ export function TaskFormDialog({
         <form
           className="task-form"
           onSubmit={handleSubmit(async (data) => {
-            await onSubmit(data);
+            setSubmitError(null);
+            try {
+              await onSubmit(data);
+            } catch (err) {
+              setSubmitError(
+                err instanceof Error
+                  ? err.message
+                  : 'Не вдалося зберегти завдання.'
+              );
+            }
           })}
           noValidate
         >
@@ -122,11 +145,7 @@ export function TaskFormDialog({
               type="text"
               className="task-form__input"
               disabled={isSubmitting}
-              ref={(element) => {
-                registerTitleRef(element);
-                titleInputRef.current = element;
-              }}
-              {...titleRegisterProps}
+              {...register('title')}
             />
             {errors.title && (
               <p className="task-form__error" role="alert">
@@ -184,6 +203,12 @@ export function TaskFormDialog({
             </div>
           </div>
 
+          {submitError && (
+            <p className="task-form__error" role="alert">
+              {submitError}
+            </p>
+          )}
+
           <div className="task-form__actions">
             <button
               type="submit"
@@ -196,7 +221,7 @@ export function TaskFormDialog({
               type="button"
               className="task-form__cancel"
               disabled={isSubmitting}
-              onClick={onClose}
+              onClick={handleRequestClose}
             >
               Скасувати
             </button>
