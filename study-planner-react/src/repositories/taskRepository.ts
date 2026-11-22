@@ -1,4 +1,4 @@
-﻿import { httpClient } from '../api/httpClient';
+import { httpClient } from '../api/httpClient';
 import type { Task, TaskPriority } from '../types/task';
 
 interface ApiTodo {
@@ -37,11 +37,21 @@ export interface UpdateTaskInput {
   completed?: boolean;
 }
 
-// Зберігаємо клієнтські метадані для створених/відредагованих задач у межах сесії
 const clientMetadataMap = new Map<
   number,
   { description: string; category: string; priority: TaskPriority }
 >();
+
+function inferPriorityFromId(id: number): TaskPriority {
+  const remainder = Math.abs(id) % 3;
+  if (remainder === 0) {
+    return 'high';
+  }
+  if (remainder === 1) {
+    return 'low';
+  }
+  return 'medium';
+}
 
 function toTask(apiTodo: ApiTodo): Task {
   const meta = clientMetadataMap.get(apiTodo.id);
@@ -50,7 +60,7 @@ function toTask(apiTodo: ApiTodo): Task {
     title: apiTodo.todo,
     description: meta?.description ?? '',
     completed: apiTodo.completed,
-    priority: meta?.priority ?? 'medium',
+    priority: meta?.priority ?? inferPriorityFromId(apiTodo.id),
     category: meta?.category ?? 'General',
   };
 }
@@ -89,7 +99,6 @@ export const taskRepository = {
       },
     });
 
-    // DummyJSON часто повертає id з фіксованого діапазону, тому гарантуємо унікальний id для UI-списку
     const uniqueId = created.id ?? Date.now();
     clientMetadataMap.set(uniqueId, {
       description: input.description,
@@ -117,7 +126,8 @@ export const taskRepository = {
     const nextDescription =
       input.description ?? currentTask?.description ?? '';
     const nextCategory = input.category ?? currentTask?.category ?? 'General';
-    const nextPriority = input.priority ?? currentTask?.priority ?? 'medium';
+    const nextPriority =
+      input.priority ?? currentTask?.priority ?? inferPriorityFromId(id);
 
     clientMetadataMap.set(id, {
       description: nextDescription,
@@ -125,7 +135,6 @@ export const taskRepository = {
       priority: nextPriority,
     });
 
-    // Для локально створених у поточній сесії задач (id > 254) DummyJSON може повернути 404 на /todos/:id
     if (id <= 254) {
       await httpClient<ApiTodo>(`/todos/${id}`, {
         method: 'PATCH',
