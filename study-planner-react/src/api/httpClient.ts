@@ -7,6 +7,7 @@ export interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
   signal?: AbortSignal;
+  token?: string | null;
 }
 
 export async function httpClient<T>(
@@ -17,8 +18,11 @@ export async function httpClient<T>(
   const url = `${baseUrl}${normalizedPath}`;
 
   const headers: Record<string, string> = {};
-  let serializedBody: string | undefined;
+  if (options.token) {
+    headers.Authorization = `Bearer ${options.token}`;
+  }
 
+  let serializedBody: string | undefined;
   if (options.body !== undefined) {
     headers['Content-Type'] = 'application/json';
     serializedBody = JSON.stringify(options.body);
@@ -32,7 +36,9 @@ export async function httpClient<T>(
   });
 
   if (!response.ok) {
-    throw new Error(`HTTP помилка ${response.status} при запиті до ${normalizedPath}`);
+    throw new Error(
+      `HTTP помилка ${response.status} при запиті до ${normalizedPath}`
+    );
   }
 
   return (await response.json()) as T;
