@@ -11,12 +11,18 @@ import '../components/TaskItem.scss';
 import '../layouts/AppLayout.scss';
 
 const PAGE_LIMIT = 10;
-const UNDO_DELAY_MS = 4000;
+const TOAST_DURATION_MS = 4500;
 
 interface PendingDeleteState {
   task: Task;
   index: number;
   timerId: number;
+}
+
+interface ToastState {
+  id: number;
+  message: string;
+  canUndo: boolean;
 }
 
 export function TasksPage() {
@@ -31,7 +37,8 @@ export function TasksPage() {
   const [page, setPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toast, setToast] = useState<ToastState | null>(null);
+  const [progress, setProgress] = useState(100);
   const [pendingDelete, setPendingDelete] = useState<PendingDeleteState | null>(
     null
   );
@@ -41,6 +48,7 @@ export function TasksPage() {
   const [completedKey, setCompletedKey] = useState<string | null>(null);
 
   const pendingDeleteRef = useRef<PendingDeleteState | null>(null);
+  const toastSeqRef = useRef(0);
 
   useEffect(() => {
     pendingDeleteRef.current = pendingDelete;
@@ -88,8 +96,42 @@ export function TasksPage() {
     };
   }, []);
 
-  const showToast = (message: string) => {
-    setToastMessage(message);
+  useEffect(() => {
+    if (!toast) {
+      return;
+    }
+
+    const startTime = performance.now();
+    const intervalId = window.setInterval(() => {
+      const elapsed = performance.now() - startTime;
+      const remainingPct = Math.max(0, 100 - (elapsed / TOAST_DURATION_MS) * 100);
+      setProgress(remainingPct);
+    }, 50);
+
+    const dismissId = window.setTimeout(() => {
+      setToast(null);
+      setProgress(100);
+    }, TOAST_DURATION_MS);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.clearTimeout(dismissId);
+    };
+  }, [toast]);
+
+  const triggerToast = (message: string, canUndo: boolean) => {
+    toastSeqRef.current += 1;
+    setProgress(100);
+    setToast({
+      id: toastSeqRef.current,
+      message,
+      canUndo,
+    });
+  };
+
+  const dismissToast = () => {
+    setToast(null);
+    setProgress(100);
   };
 
   const updateFilterParam = (key: 'status' | 'priority', value: string) => {
@@ -136,7 +178,7 @@ export function TasksPage() {
       setIsDialogOpen(false);
       const msg = `Завдання «${created.title}» створено (пріоритет: ${created.priority}).`;
       setFeedback(msg);
-      showToast(msg);
+      triggerToast(msg, false);
     } catch (err) {
       setIsDialogOpen(false);
       setFeedback(
@@ -166,7 +208,7 @@ export function TasksPage() {
       );
       const msg = `Статус «${updated.title}» оновлено.`;
       setFeedback(msg);
-      showToast(msg);
+      triggerToast(msg, false);
     } catch (err) {
       setFeedback(
         err instanceof Error ? err.message : 'Не вдалося оновити завдання.'
@@ -196,12 +238,11 @@ export function TasksPage() {
 
     const timerId = window.setTimeout(() => {
       setPendingDelete(null);
+      dismissToast();
       void taskRepository
         .delete(task.id, accessToken)
         .then(() => {
-          const msg = `Завдання «${task.title}» видалено.`;
-          setFeedback(msg);
-          showToast(msg);
+          setFeedback(`Завдання «${task.title}» видалено.`);
         })
         .catch((err: unknown) => {
           setAllTasks((prev) => {
@@ -216,11 +257,12 @@ export function TasksPage() {
             err instanceof Error ? err.message : 'Не вдалося видалити завдання.'
           );
         });
-    }, UNDO_DELAY_MS);
+    }, TOAST_DURATION_MS);
 
     setPendingDelete({ task, index, timerId });
-    setToastMessage(
-      `Завдання «${task.title}» буде видалено через 4 с.`
+    triggerToast(
+      `Завдання «${task.title}» буде видалено через 4.5 с.`,
+      true
     );
   };
 
@@ -231,7 +273,7 @@ export function TasksPage() {
     window.clearTimeout(pendingDelete.timerId);
     const { task, index } = pendingDelete;
     setPendingDelete(null);
-    setToastMessage(null);
+    dismissToast();
     setAllTasks((prev) => {
       if (prev.some((item) => item.id === task.id)) {
         return prev;
@@ -240,7 +282,9 @@ export function TasksPage() {
       copy.splice(Math.max(0, Math.min(index, copy.length)), 0, task);
       return copy;
     });
-    setFeedback(`Видалення «${task.title}» скасовано.`);
+    const msg = `Видалення «${task.title}» скасовано.`;
+    setFeedback(msg);
+    triggerToast(msg, false);
   };
 
   const completedCount = allTasks.filter((t) => t.completed).length;
@@ -431,42 +475,86 @@ export function TasksPage() {
         onSubmit={handleCreateTask}
       />
 
-      {toastMessage && (
+      {toast && (
         <div
           role="status"
           style={{
             position: 'fixed',
             right: '1.25rem',
             bottom: '1.25rem',
-            backgroundColor: '#1e293b',
+            minWidth: '300px',
+            maxWidth: '420px',
+            backgroundColor: '#0f172a',
             color: '#f8fafc',
-            padding: '0.75rem 1rem',
-            borderRadius: '0.5rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem',
-            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.25)',
+            borderRadius: '0.6rem',
+            overflow: 'hidden',
+            boxShadow: '0 12px 28px rgba(0, 0, 0, 0.3)',
             zIndex: 1000,
           }}
         >
-          <span>{toastMessage}</span>
-          {pendingDelete && (
-            <button
-              type="button"
-              className="task-item__btn"
-              onClick={handleUndoDelete}
-            >
-              Скасувати
-            </button>
-          )}
-          <button
-            type="button"
-            className="task-item__btn"
-            aria-label="Закрити сповіщення"
-            onClick={() => setToastMessage(null)}
+          <div
+            style={{
+              padding: '0.8rem 1rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '0.75rem',
+            }}
           >
-            ×
-          </button>
+            <span style={{ fontSize: '0.92rem', lineHeight: 1.35 }}>
+              {toast.message}
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+              {toast.canUndo && pendingDelete && (
+                <button
+                  type="button"
+                  style={{
+                    backgroundColor: '#f59e0b',
+                    color: '#0f172a',
+                    border: 'none',
+                    borderRadius: '0.375rem',
+                    padding: '0.35rem 0.65rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                  onClick={handleUndoDelete}
+                >
+                  Скасувати
+                </button>
+              )}
+              <button
+                type="button"
+                aria-label="Закрити сповіщення"
+                style={{
+                  background: 'transparent',
+                  color: '#cbd5e1',
+                  border: '1px solid #334155',
+                  borderRadius: '0.375rem',
+                  padding: '0.25rem 0.5rem',
+                  cursor: 'pointer',
+                }}
+                onClick={dismissToast}
+              >
+                ×
+              </button>
+            </div>
+          </div>
+          <div
+            style={{
+              height: '4px',
+              width: '100%',
+              backgroundColor: 'rgba(148, 163, 184, 0.25)',
+            }}
+          >
+            <div
+              style={{
+                height: '100%',
+                width: `${progress}%`,
+                backgroundColor: '#f59e0b',
+                transition: 'width 50ms linear',
+              }}
+            />
+          </div>
         </div>
       )}
     </section>
