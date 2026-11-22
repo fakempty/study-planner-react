@@ -1,41 +1,61 @@
-﻿import { useTaskContext } from '../hooks/useTaskContext';
-import TaskItem from './TaskItem';
+﻿import TaskItem from './TaskItem';
+import type { Task } from '../types/task';
 import './TaskList.scss';
 
-function TaskList() {
-  const { tasks, filter } = useTaskContext();
+interface TaskListProps {
+  tasks: Task[];
+  isLoading: boolean;
+  error: string | null;
+  busyTaskId: number | null;
+  onRetry: () => void;
+  onToggleTask: (task: Task) => void;
+  onEditTask: (task: Task) => void;
+  onDeleteTask: (id: number) => void;
+  onSelectTask: (id: number) => void;
+}
 
-  const visibleTasks = tasks.filter((task) => {
-    if (filter === 'completed') {
-      return task.completed;
-    }
-    if (filter === 'active') {
-      return !task.completed;
-    }
-    return true;
-  });
+function TaskList({
+  tasks,
+  isLoading,
+  error,
+  busyTaskId,
+  onRetry,
+  onToggleTask,
+  onEditTask,
+  onDeleteTask,
+  onSelectTask,
+}: TaskListProps) {
+  if (isLoading) {
+    return <p className="task-list__empty">Loading...</p>;
+  }
 
-  if (tasks.length === 0) {
+  if (error) {
     return (
-      <p className="task-list__empty">
-        Завдань поки немає. Додайте перше навчальне завдання.
-      </p>
+      <div className="task-list__empty">
+        <p>Помилка завантаження: {error}</p>
+        <button type="button" onClick={onRetry}>
+          Спробувати ще
+        </button>
+      </div>
     );
   }
 
-  if (visibleTasks.length === 0) {
-    const filterLabel = filter === 'completed' ? 'виконаних' : 'невиконаних';
-    return (
-      <p className="task-list__empty">
-        За цим фільтром завдань немає ({filterLabel}).
-      </p>
-    );
+  if (tasks.length === 0) {
+    return <p className="task-list__empty">Завдань не знайдено.</p>;
   }
 
   return (
     <ul className="task-list">
-      {visibleTasks.map((task) => (
-        <TaskItem key={task.id} task={task} />
+      {tasks.map((task) => (
+        <TaskItem
+          key={task.id}
+          task={task}
+          isBusy={busyTaskId === task.id}
+          onToggleTask={onToggleTask}
+          onEditTask={onEditTask}
+          onDeleteTask={onDeleteTask}
+          onSelectTask={onSelectTask}
+        />
       ))}
     </ul>
   );

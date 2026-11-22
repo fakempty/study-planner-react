@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { taskRepository } from '../../repositories/taskRepository';
 import type { Task } from '../../types/task';
 import './TaskDetails.scss';
@@ -15,29 +15,47 @@ export function TaskDetails({
   onClose,
 }: TaskDetailsProps) {
   const [detailTask, setDetailTask] = useState<Task | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [reloadCounter, setReloadCounter] = useState(0);
+  const [retryCount, setRetryCount] = useState(0);
+  const [completedRequestKey, setCompletedRequestKey] = useState<string | null>(
+    null
+  );
 
-  const loadDetails = useCallback(
-    async (id: number, signal: AbortSignal) => {
-      setIsLoading(true);
-      setError(null);
+  const requestKey = taskId !== null ? `${taskId}-${retryCount}` : null;
+  const isLoading = requestKey !== null && completedRequestKey !== requestKey;
 
-      try {
-        const fetched = await taskRepository.getById(id, signal);
+  useEffect(() => {
+    if (taskId === null || requestKey === null) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    taskRepository
+      .getById(taskId, controller.signal)
+      .then((fetched) => {
+        if (controller.signal.aborted) {
+          return;
+        }
         setDetailTask({
           ...fetched,
           description: fallbackTask?.description || fetched.description,
           category: fallbackTask?.category || fetched.category,
           priority: fallbackTask?.priority || fetched.priority,
         });
-      } catch (err) {
+        setError(null);
+        setCompletedRequestKey(requestKey);
+      })
+      .catch((err: unknown) => {
+        if (controller.signal.aborted) {
+          return;
+        }
         if (err instanceof DOMException && err.name === 'AbortError') {
           return;
         }
         if (fallbackTask) {
           setDetailTask(fallbackTask);
+          setError(null);
         } else {
           setError(
             err instanceof Error
@@ -45,27 +63,13 @@ export function TaskDetails({
               : 'Не вдалося завантажити деталі завдання.'
           );
         }
-      } finally {
-        if (!signal.aborted) {
-          setIsLoading(false);
-        }
-      }
-    },
-    [fallbackTask]
-  );
-
-  useEffect(() => {
-    if (taskId === null) {
-      return;
-    }
-
-    const controller = new AbortController();
-    void loadDetails(taskId, controller.signal);
+        setCompletedRequestKey(requestKey);
+      });
 
     return () => {
       controller.abort();
     };
-  }, [taskId, reloadCounter, loadDetails]);
+  }, [taskId, requestKey, fallbackTask]);
 
   if (taskId === null) {
     return null;
@@ -92,7 +96,7 @@ export function TaskDetails({
           <button
             type="button"
             className="task-details__retry"
-            onClick={() => setReloadCounter((prev) => prev + 1)}
+            onClick={() => setRetryCount((prev) => prev + 1)}
           >
             Спробувати ще
           </button>

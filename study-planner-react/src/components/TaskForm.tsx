@@ -1,26 +1,35 @@
 ﻿import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { useTaskContext } from '../hooks/useTaskContext';
-import type { TaskPriority } from '../types/task';
+import type { CreateTaskInput } from '../repositories/taskRepository';
+import type { Task, TaskPriority } from '../types/task';
 import './TaskForm.scss';
 
-function TaskForm() {
-  const { addTask, updateTask, editingTask, cancelEditingTask } =
-    useTaskContext();
+interface TaskFormProps {
+  editingTask: Task | null;
+  isSubmitting: boolean;
+  onSubmitTask: (values: CreateTaskInput, editingId?: number) => Promise<void>;
+  onCancelEdit: () => void;
+}
 
+function TaskForm({
+  editingTask,
+  isSubmitting,
+  onSubmitTask,
+  onCancelEdit,
+}: TaskFormProps) {
   const [title, setTitle] = useState(() => editingTask?.title ?? '');
   const [description, setDescription] = useState(
     () => editingTask?.description ?? ''
   );
   const [category, setCategory] = useState(
-    () => editingTask?.category ?? 'React'
+    () => editingTask?.category ?? 'General'
   );
   const [priority, setPriority] = useState<TaskPriority>(
     () => editingTask?.priority ?? 'medium'
   );
   const [error, setError] = useState('');
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const trimmedTitle = title.trim();
@@ -29,23 +38,22 @@ function TaskForm() {
       return;
     }
 
-    const formData = {
-      title: trimmedTitle,
-      description: description.trim(),
-      category: category.trim() || 'Загальне',
-      priority,
-    };
+    await onSubmitTask(
+      {
+        title: trimmedTitle,
+        description: description.trim(),
+        category: category.trim() || 'General',
+        priority,
+      },
+      editingTask?.id
+    );
 
-    if (editingTask) {
-      updateTask(editingTask.id, formData);
-    } else {
-      addTask(formData);
+    if (!editingTask) {
       setTitle('');
       setDescription('');
-      setCategory('React');
+      setCategory('General');
       setPriority('medium');
     }
-
     setError('');
   };
 
@@ -64,13 +72,14 @@ function TaskForm() {
           id="task-title"
           type="text"
           value={title}
+          disabled={isSubmitting}
           onChange={(e) => {
             setTitle(e.target.value);
             if (error) {
               setError('');
             }
           }}
-          placeholder="Наприклад, Повторити hooks"
+          placeholder="Наприклад, Повторити REST API"
         />
       </div>
 
@@ -82,6 +91,7 @@ function TaskForm() {
           className="task-form__textarea"
           id="task-description"
           value={description}
+          disabled={isSubmitting}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Короткий опис завдання"
           rows={2}
@@ -98,8 +108,9 @@ function TaskForm() {
             id="task-category"
             type="text"
             value={category}
+            disabled={isSubmitting}
             onChange={(e) => setCategory(e.target.value)}
-            placeholder="React, TypeScript, Алгоритми..."
+            placeholder="General, React, HTTP..."
           />
         </div>
 
@@ -111,6 +122,7 @@ function TaskForm() {
             className="task-form__select"
             id="task-priority"
             value={priority}
+            disabled={isSubmitting}
             onChange={(e) => setPriority(e.target.value as TaskPriority)}
           >
             <option value="low">low</option>
@@ -127,15 +139,24 @@ function TaskForm() {
       )}
 
       <div className="task-form__actions">
-        <button className="task-form__submit" type="submit">
-          {editingTask ? 'Зберегти зміни' : 'Додати'}
+        <button
+          className="task-form__submit"
+          type="submit"
+          disabled={isSubmitting}
+        >
+          {isSubmitting
+            ? 'Збереження...'
+            : editingTask
+              ? 'Зберегти зміни'
+              : 'Додати'}
         </button>
 
         {editingTask && (
           <button
             type="button"
             className="task-form__cancel"
-            onClick={cancelEditingTask}
+            disabled={isSubmitting}
+            onClick={onCancelEdit}
           >
             Скасувати
           </button>

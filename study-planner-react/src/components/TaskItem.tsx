@@ -1,36 +1,38 @@
-﻿import { useTaskContext } from '../hooks/useTaskContext';
+﻿import { useState } from 'react';
 import type { Task } from '../types/task';
 import './TaskItem.scss';
 
 interface TaskItemProps {
   task: Task;
+  isBusy?: boolean;
+  onToggleTask: (task: Task) => void;
+  onEditTask: (task: Task) => void;
+  onDeleteTask: (id: number) => void;
+  onSelectTask: (id: number) => void;
 }
 
-function TaskItem({ task }: TaskItemProps) {
-  const { toggleTask, requestDelete, startEditingTask, pendingDelete } =
-    useTaskContext();
+function TaskItem({
+  task,
+  isBusy = false,
+  onToggleTask,
+  onEditTask,
+  onDeleteTask,
+  onSelectTask,
+}: TaskItemProps) {
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
-  const isPendingDeletion = pendingDelete?.taskId === task.id;
-
-  const itemClasses = ['task-item'];
-  if (task.completed) {
-    itemClasses.push('task-item--completed');
-  }
-  if (isPendingDeletion) {
-    itemClasses.push('task-item--pending-delete');
-  }
+  const itemClass = task.completed
+    ? 'task-item task-item--completed'
+    : 'task-item';
 
   return (
-    <li className={itemClasses.join(' ')}>
+    <li className={itemClass}>
       <div className="task-item__body">
         <div className="task-item__top">
           <h3 className="task-item__title">{task.title}</h3>
           <span className="task-item__status">
             {task.completed ? 'Виконано' : 'Не виконано'}
           </span>
-          {isPendingDeletion && (
-            <span className="task-item__pending-badge">Буде видалено</span>
-          )}
         </div>
 
         {task.description && (
@@ -47,8 +49,17 @@ function TaskItem({ task }: TaskItemProps) {
         <button
           type="button"
           className="task-item__btn"
-          disabled={isPendingDeletion}
-          onClick={() => toggleTask(task.id)}
+          disabled={isBusy}
+          onClick={() => onSelectTask(task.id)}
+        >
+          Деталі
+        </button>
+
+        <button
+          type="button"
+          className="task-item__btn"
+          disabled={isBusy}
+          onClick={() => onToggleTask(task)}
         >
           {task.completed ? 'Повернути в не виконані' : 'Позначити виконаним'}
         </button>
@@ -56,20 +67,44 @@ function TaskItem({ task }: TaskItemProps) {
         <button
           type="button"
           className="task-item__btn"
-          disabled={isPendingDeletion}
-          onClick={() => startEditingTask(task)}
+          disabled={isBusy}
+          onClick={() => onEditTask(task)}
         >
           Редагувати
         </button>
 
-        <button
-          type="button"
-          className="task-item__btn task-item__btn--danger"
-          disabled={isPendingDeletion}
-          onClick={() => requestDelete(task.id)}
-        >
-          Видалити
-        </button>
+        {!confirmingDelete ? (
+          <button
+            type="button"
+            className="task-item__btn task-item__btn--danger"
+            disabled={isBusy}
+            onClick={() => setConfirmingDelete(true)}
+          >
+            Видалити
+          </button>
+        ) : (
+          <>
+            <button
+              type="button"
+              className="task-item__btn task-item__btn--danger"
+              disabled={isBusy}
+              onClick={() => {
+                setConfirmingDelete(false);
+                onDeleteTask(task.id);
+              }}
+            >
+              Підтвердити
+            </button>
+            <button
+              type="button"
+              className="task-item__btn"
+              disabled={isBusy}
+              onClick={() => setConfirmingDelete(false)}
+            >
+              Скасувати
+            </button>
+          </>
+        )}
       </div>
     </li>
   );
